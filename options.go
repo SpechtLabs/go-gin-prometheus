@@ -13,11 +13,11 @@ import (
 type GinPrometheusOpt func(*exporter)
 
 // WithPushGateway configures exporter to push metrics to a remote PushGateway using specified URL, metrics source, and interval.
-func WithPushGateway(pushGatewayURL, metricsURL string, pushIntervalSeconds time.Duration) GinPrometheusOpt {
+func WithPushGateway(pushGatewayURL, metricsURL string, pushInterval time.Duration) GinPrometheusOpt {
 	return func(p *exporter) {
 		p.Ppg.PushGatewayURL = pushGatewayURL
 		p.Ppg.MetricsURL = metricsURL
-		p.Ppg.PushIntervalSeconds = pushIntervalSeconds
+		p.Ppg.PushInterval = pushInterval
 		p.startPushTicker()
 	}
 }

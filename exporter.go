@@ -38,8 +38,8 @@ type RequestCounterURLLabelMappingFn func(c *gin.Context) string
 // PrometheusPushGateway contains the configuration for pushing to a exporter pushgateway (optional)
 type PrometheusPushGateway struct {
 
-	// Push interval in seconds
-	PushIntervalSeconds time.Duration
+	// Push interval
+	PushInterval time.Duration
 
 	// Push Gateway URL in format http://domain:port
 	// where JOBNAME can be any string of your choice
@@ -125,6 +125,11 @@ func (p *exporter) getPushGatewayURL() string {
 
 func (p *exporter) sendMetricsToPushGateway(metrics []byte) {
 	req, err := http.NewRequest("POST", p.getPushGatewayURL(), bytes.NewBuffer(metrics))
+	if err != nil {
+		otelzap.L().WithError(err).Error("Error creating request to push gateway")
+		return
+	}
+
 	client := &http.Client{}
 	if _, err = client.Do(req); err != nil {
 		otelzap.L().WithError(err).Error("Error sending to push gateway")
@@ -132,7 +137,7 @@ func (p *exporter) sendMetricsToPushGateway(metrics []byte) {
 }
 
 func (p *exporter) startPushTicker() {
-	ticker := time.NewTicker(time.Second * p.Ppg.PushIntervalSeconds)
+	ticker := time.NewTicker(time.Second * p.Ppg.PushInterval)
 	go func() {
 		for range ticker.C {
 			p.sendMetricsToPushGateway(p.getMetrics())
