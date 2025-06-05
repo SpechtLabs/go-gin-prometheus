@@ -3,6 +3,10 @@
 
 Gin Web Framework Prometheus metrics exporter
 
+_Forked from [zsais/go-gin-prometheus](https://github.com/zsais/go-gin-prometheus/)_
+
+Modified to use a more modern builder pattern to pass in configurations 
+
 ## Installation
 
 `$ go get github.com/zsais/go-gin-prometheus`
@@ -14,14 +18,13 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/zsais/go-gin-prometheus"
+	"github.com/SpechtLabs/ginprometheus"
 )
 
 func main() {
 	r := gin.New()
 
-	p := ginprometheus.NewPrometheus("gin")
-	p.Use(r)
+	r.Use(ginprometheus.GinPrometheusMiddleware(r, "gin"))
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, "Hello world!")
