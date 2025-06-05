@@ -4,7 +4,7 @@ import (
 	"fmt"
 
 	"github.com/gin-gonic/gin"
-	"github.com/spechtlabs/ginprometheus"
+	ginprometheus "github.com/spechtlabs/go-gin-prometheus"
 	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 

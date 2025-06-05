@@ -1,10 +1,9 @@
-module github.com/spechtlabs/ginprometheus
+module github.com/spechtlabs/go-gin-prometheus
 
 go 1.24.0
 
 require (
 	github.com/gin-gonic/gin v1.10.1
-	github.com/mcuadros/go-gin-prometheus v0.1.0
 	github.com/prometheus/client_golang v1.22.0
 	github.com/spechtlabs/go-otel-utils/otelzap v0.0.10
 	sigs.k8s.io/controller-runtime v0.21.0
@@ -51,7 +50,6 @@ require (
 	github.com/prometheus/common v0.62.0 // indirect
 	github.com/prometheus/procfs v0.15.1 // indirect
 	github.com/sierrasoftworks/humane-errors-go v0.0.0-20241125132722-d032d7dd359e // indirect
-	github.com/sirupsen/logrus v1.9.3 // indirect
 	github.com/twitchyliquid64/golang-asm v0.15.1 // indirect
 	github.com/ugorji/go/codec v1.2.12 // indirect
 	github.com/x448/float16 v0.8.4 // indirect
