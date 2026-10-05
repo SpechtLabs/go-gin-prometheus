@@ -1,5 +1,5 @@
 # go-gin-prometheus
-[![](https://godoc.org/github.com/zsais/go-gin-prometheus?status.svg)](https://godoc.org/github.com/zsais/go-gin-prometheus) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
+[![Go Reference](https://pkg.go.dev/badge/github.com/spechtlabs/go-gin-prometheus.svg)](https://pkg.go.dev/github.com/spechtlabs/go-gin-prometheus) [![License: MIT](https://img.shields.io/badge/License-MIT-yellow.svg)](https://opensource.org/licenses/MIT)
 
 Gin Web Framework Prometheus metrics exporter
 
@@ -9,7 +9,9 @@ Modified to use a more modern builder pattern to pass in configurations
 
 ## Installation
 
-`$ go get github.com/zsais/go-gin-prometheus`
+```bash
+go get github.com/spechtlabs/go-gin-prometheus
+```
 
 ## Usage
 
@@ -18,7 +20,7 @@ package main
 
 import (
 	"github.com/gin-gonic/gin"
-	"github.com/SpechtLabs/ginprometheus"
+	ginprometheus "github.com/spechtlabs/go-gin-prometheus"
 )
 
 func main() {
@@ -34,7 +36,7 @@ func main() {
 }
 ```
 
-See the [example.go file](https://github.com/zsais/go-gin-prometheus/blob/master/example/example.go)
+See the [example.go file](example/example.go)
 
 ## Preserving a low cardinality for the request counter
 
@@ -54,16 +56,16 @@ you could supply this mapping function to the middleware:
 package main
 
 import (
+	"strings"
+
 	"github.com/gin-gonic/gin"
-	"github.com/zsais/go-gin-prometheus"
+	ginprometheus "github.com/spechtlabs/go-gin-prometheus"
 )
 
 func main() {
 	r := gin.New()
 
-	p := ginprometheus.NewPrometheus("gin")
-
-	p.ReqCntURLLabelMappingFn = func(c *gin.Context) string {
+	mapURL := func(c *gin.Context) string {
 		url := c.Request.URL.Path
 		for _, p := range c.Params {
 			if p.Key == "name" {
@@ -74,7 +76,9 @@ func main() {
 		return url
 	}
 
-	p.Use(r)
+	r.Use(ginprometheus.GinPrometheusMiddleware(r, "gin",
+		ginprometheus.WithRequestCounterURLLabelMappingFn(mapURL),
+	))
 
 	r.GET("/", func(c *gin.Context) {
 		c.JSON(200, "Hello world!")
@@ -87,3 +91,7 @@ func main() {
 which would map `/customer/alice` and `/customer/bob` to their
 template `/customer/:name`, and thus preserve a low cardinality for
 our metrics.
+
+To replace every route parameter with its name, use
+`ginprometheus.WithLowCardinalityUrl()` instead of writing the mapping
+function yourself.

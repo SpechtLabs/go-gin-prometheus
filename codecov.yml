@@ -1,0 +1,18 @@
+# Codecov fails a pull request when the lines it changes are less than 85%
+# covered, or when it lowers the project's coverage. The project target follows
+# the base branch (auto) rather than a fixed 85%, because the listen-address,
+# push gateway job and registerer options have no tests yet and the project
+# sits below it; raise it to 85% once the project gets there.
+coverage:
+  status:
+    project:
+      default:
+        target: auto
+        threshold: 1%
+    patch:
+      default:
+        target: 85%
+
+# The example ships nothing and has no tests.
+ignore:
+  - "example/**"
