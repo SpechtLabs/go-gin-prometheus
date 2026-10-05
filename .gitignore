@@ -475,3 +475,6 @@ yarn-error.log
 custom-gcl
 # `mise run test` writes it.
 coverage.txt
+
+### Commit message check ###
+.github/commit-lint/node_modules/
