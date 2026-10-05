@@ -5,7 +5,6 @@ import (
 
 	"github.com/gin-gonic/gin"
 	ginprometheus "github.com/spechtlabs/go-gin-prometheus"
-	"sigs.k8s.io/controller-runtime/pkg/metrics"
 )
 
 func main() {
@@ -28,10 +27,9 @@ func main() {
 
 	r.Use(
 		ginprometheus.GinPrometheusMiddleware(r, "gin",
-			ginprometheus.WithCustomMetric(testMetric),     // Optional: additional custom metrics
-			ginprometheus.WithCustomMetric(testMetric2),    // Optional: additional custom metric
-			ginprometheus.WithRegisterer(metrics.Registry), // Optional: use the K8s controller metrics registry
-			ginprometheus.WithLowCardinalityUrl(),          // Optional: replace the url parameters with their keys to reduce the metric cardinality
+			ginprometheus.WithCustomMetric(testMetric),  // Optional: additional custom metrics
+			ginprometheus.WithCustomMetric(testMetric2), // Optional: additional custom metric
+			ginprometheus.WithLowCardinalityUrl(),       // Optional: replace the url parameters with their keys to reduce the metric cardinality
 		),
 	)
 

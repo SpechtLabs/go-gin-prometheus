@@ -2,16 +2,25 @@ package ginprometheus
 
 import "github.com/prometheus/client_golang/prometheus"
 
+// MetricType selects the prometheus.Collector NewMetric creates for a Metric.
 type MetricType int8
 
 const (
+	// MetricTypeCounterVec creates a prometheus.CounterVec labeled by Metric.Args.
 	MetricTypeCounterVec MetricType = iota
+	// MetricTypeCounter creates a prometheus.Counter.
 	MetricTypeCounter
+	// MetricTypeGaugeVec creates a prometheus.GaugeVec labeled by Metric.Args.
 	MetricTypeGaugeVec
+	// MetricTypeGauge creates a prometheus.Gauge.
 	MetricTypeGauge
+	// MetricTypeHistogramVec creates a prometheus.HistogramVec labeled by Metric.Args.
 	MetricTypeHistogramVec
+	// MetricTypeHistogram creates a prometheus.Histogram.
 	MetricTypeHistogram
+	// MetricTypeSummaryVec creates a prometheus.SummaryVec labeled by Metric.Args.
 	MetricTypeSummaryVec
+	// MetricTypeSummary creates a prometheus.Summary.
 	MetricTypeSummary
 )
 
@@ -63,12 +72,17 @@ type Metric struct {
 	ID          string
 	Name        string
 	Description string
-	Type        MetricType
 	Args        []string
+	Type        MetricType
 }
 
-// NewMetric associates prometheus.Collector based on metric.Type
+// NewMetric associates prometheus.Collector based on metric.Type. It returns
+// nil for a nil Metric or an unknown Type.
 func NewMetric(m *Metric, subsystem string) prometheus.Collector {
+	if m == nil {
+		return nil
+	}
+
 	var metric prometheus.Collector
 	switch m.Type {
 	case MetricTypeCounterVec:

@@ -2,6 +2,7 @@ package ginprometheus
 
 import (
 	"bytes"
+	"context"
 	"fmt"
 	"io"
 	"net/http"
@@ -11,10 +12,16 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/prometheus/client_golang/prometheus"
 	"github.com/prometheus/client_golang/prometheus/promhttp"
+	"github.com/sierrasoftworks/humane-errors-go"
 	"github.com/spechtlabs/go-otel-utils/otelzap"
 )
 
 var defaultMetricPath = "/metrics"
+
+// pushGatewayClient reads the local metrics and posts them to the push
+// gateway. The timeout keeps an unreachable endpoint from stalling the push
+// loop forever.
+var pushGatewayClient = &http.Client{Timeout: 10 * time.Second}
 
 // RequestCounterURLLabelMappingFn is a function which can be supplied to the middleware to control
 // the cardinality of the request counter's "url" label, which might be required in some contexts.
@@ -37,43 +44,45 @@ type RequestCounterURLLabelMappingFn func(c *gin.Context) string
 
 // PrometheusPushGateway contains the configuration for pushing to a exporter pushgateway (optional)
 type PrometheusPushGateway struct {
-
-	// Push interval
-	PushInterval time.Duration
-
 	// Push Gateway URL in format http://domain:port
 	// where JOBNAME can be any string of your choice
 	PushGatewayURL string
 
-	// Local metrics URL where metrics are fetched from, this could be ommited in the future
+	// Local metrics URL where metrics are fetched from, this could be omitted in the future
 	// if implemented using prometheus common/expfmt instead
 	MetricsURL string
 
 	// pushgateway job name, defaults to "gin"
 	Job string
+
+	// Push interval
+	PushInterval time.Duration
 }
 
 // exporter contains the metrics gathered by the instance and its path
 type exporter struct {
+	registerer    prometheus.Registerer
+	reqSz, resSz  prometheus.Summary
 	reqCnt        *prometheus.CounterVec
 	reqDur        *prometheus.HistogramVec
-	reqSz, resSz  prometheus.Summary
 	router        *gin.Engine
 	listenAddress string
-	Ppg           PrometheusPushGateway
-	registerer    prometheus.Registerer
-
-	MetricsList []*Metric
-	MetricsPath string
 
 	ReqCntURLLabelMappingFn RequestCounterURLLabelMappingFn
+
+	// Authenticated metrics endpoint
+	accounts gin.Accounts
+
+	MetricsPath string
 
 	// gin.Context string to use as a prometheus URL label
 	URLLabelFromContext string
 
-	// Authenticated metrics endpoint
+	Ppg PrometheusPushGateway
+
+	MetricsList []*Metric
+
 	metricsWithAuth bool
-	accounts        gin.Accounts
 }
 
 // newExporter generates a new set of metrics with a certain subsystem name
@@ -104,15 +113,19 @@ func (p *exporter) runServer() {
 	}
 }
 
-func (p *exporter) getMetrics() []byte {
-	response, _ := http.Get(p.Ppg.MetricsURL)
+func (p *exporter) getMetrics() ([]byte, error) {
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodGet, p.Ppg.MetricsURL, http.NoBody)
+	if err != nil {
+		return nil, humane.Wrap(err, "cannot create the request for the metrics to push", "check the metrics URL passed to WithPushGateway")
+	}
 
-	defer func(Body io.ReadCloser) {
-		_ = Body.Close()
-	}(response.Body)
-	body, _ := io.ReadAll(response.Body)
+	response, err := pushGatewayClient.Do(req)
+	if err != nil {
+		return nil, humane.Wrap(err, "cannot read the metrics to push from "+p.Ppg.MetricsURL, "check that the metrics URL passed to WithPushGateway serves this service's metrics")
+	}
+	defer func() { _ = response.Body.Close() }()
 
-	return body
+	return io.ReadAll(response.Body)
 }
 
 func (p *exporter) getPushGatewayURL() string {
@@ -124,25 +137,38 @@ func (p *exporter) getPushGatewayURL() string {
 }
 
 func (p *exporter) sendMetricsToPushGateway(metrics []byte) {
-	req, err := http.NewRequest("POST", p.getPushGatewayURL(), bytes.NewBuffer(metrics))
+	req, err := http.NewRequestWithContext(context.Background(), http.MethodPost, p.getPushGatewayURL(), bytes.NewBuffer(metrics))
 	if err != nil {
 		otelzap.L().WithError(err).Error("Error creating request to push gateway")
 		return
 	}
 
-	client := &http.Client{}
-	if _, err = client.Do(req); err != nil {
+	response, err := pushGatewayClient.Do(req)
+	if err != nil {
 		otelzap.L().WithError(err).Error("Error sending to push gateway")
+		return
 	}
+	_ = response.Body.Close()
 }
 
 func (p *exporter) startPushTicker() {
 	ticker := time.NewTicker(time.Second * p.Ppg.PushInterval)
 	go func() {
 		for range ticker.C {
-			p.sendMetricsToPushGateway(p.getMetrics())
+			p.pushMetrics()
 		}
 	}()
+}
+
+// pushMetrics reads the local metrics and sends them to the push gateway. A
+// failure is logged, and the next tick tries again.
+func (p *exporter) pushMetrics() {
+	metrics, err := p.getMetrics()
+	if err != nil {
+		otelzap.L().WithError(err).Error("Error reading metrics to push to push gateway")
+		return
+	}
+	p.sendMetricsToPushGateway(metrics)
 }
 
 func (p *exporter) registerMetrics(subsystem string) {

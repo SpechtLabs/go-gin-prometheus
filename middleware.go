@@ -7,6 +7,10 @@ import (
 	"github.com/gin-gonic/gin"
 )
 
+// GinPrometheusMiddleware registers the request metrics with subsystem as
+// their Prometheus subsystem, serves them on e (or on the listen address
+// WithListenAddress sets), and returns the middleware that records every
+// request but the metrics endpoint's own.
 func GinPrometheusMiddleware(e *gin.Engine, subsystem string, opts ...GinPrometheusOpt) gin.HandlerFunc {
 	p := newExporter(subsystem)
 
