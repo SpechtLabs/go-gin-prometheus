@@ -1,5 +1,12 @@
 # Changelog
 
+## [0.1.3](https://github.com/SpechtLabs/go-gin-prometheus/compare/v0.1.2...v0.1.3) (2026-10-12)
+
+
+### Bug Fixes
+
+* **deps:** update go modules ([#9](https://github.com/SpechtLabs/go-gin-prometheus/issues/9)) ([359068b](https://github.com/SpechtLabs/go-gin-prometheus/commit/359068b694c6475ac175f7edb6880b19a8485c07))
+
 ## [0.1.2](https://github.com/SpechtLabs/go-gin-prometheus/compare/v0.1.1...v0.1.2) (2026-10-05)
 
 
